@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>雲端宮・線上參拜</title>
+  <meta name="description" content="原創 3D 線上廟宇：照著龍門進、虎門出的動線慢慢走、好好拜，人多時自動排隊，不會互相碰撞。">
+  <meta name="theme-color" content="#2b1a14">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/client/main.js"></script>
+</head>
+<body>
+  <canvas id="scene" aria-label="3D 廟宇場景"></canvas>
+  <div id="overlay" class="overlay" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="seal" aria-hidden="true">雲</span>
+      <div>
+        <h1>雲端宮</h1>
+        <p>慢慢走，好好拜</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="roomBtn" class="pill" type="button" title="廟埕與邀請">
+        <span id="connDot" class="dot"></span><span id="roomName">第 1 廟埕</span><span id="onlineCount" class="muted"></span>
+      </button>
+      <button id="viewBtn" class="icon-btn" type="button" aria-label="切換視角：跟隨或俯瞰" title="切換視角（V）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <button id="mapBtn" class="icon-btn" type="button" aria-label="小地圖" title="小地圖（M）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>
+      </button>
+      <button id="soundBtn" class="icon-btn" type="button" aria-label="聲音" title="聲音">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path id="soundWave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+      <button id="aboutBtn" class="icon-btn" type="button" aria-label="說明與設定" title="說明與設定">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <aside id="guide" class="guide" aria-label="參拜路線">
+    <div class="guide-head">
+      <span class="eyebrow">參拜路線</span>
+      <span id="progress" class="progress" aria-hidden="true"></span>
+    </div>
+    <div class="guide-now">
+      <div class="step-kicker" id="stepKicker">下一站</div>
+      <div class="step-title" id="stepTitle">服務台・請香</div>
+      <div class="step-sub" id="stepSub"></div>
+    </div>
+    <div class="guide-actions">
+      <button id="goBtn" class="primary" type="button">前往</button>
+      <button id="skipBtn" class="ghost" type="button">跳過</button>
+    </div>
+    <button id="routeToggle" class="link" type="button" aria-expanded="false">看完整路線</button>
+    <ol id="routeList" class="route-list" hidden></ol>
+  </aside>
+
+  <div id="statusChip" class="status-chip" hidden>
+    <span id="statusText"></span>
+    <button id="stopBtn" class="chip-btn" type="button">停下</button>
+  </div>
+
+  <section id="actionBar" class="action-bar" hidden aria-label="參拜動作">
+    <div class="action-head">
+      <div>
+        <div class="eyebrow" id="actionKicker">你在拜墊上</div>
+        <div class="action-title" id="actionTitle"></div>
+      </div>
+      <div class="holding" id="holding"></div>
+    </div>
+    <div class="action-buttons" id="actionButtons"></div>
+    <div class="action-foot">
+      <button id="noteBtn" class="link" type="button">寫下想稟告的話</button>
+      <button id="finishBtn" class="primary" type="button">完成，往下一站</button>
+    </div>
+  </section>
+
+  <div id="joystick" class="joystick" aria-hidden="true"><div id="knob" class="knob"></div></div>
+  <div class="emotes">
+    <div id="emoteMenu" class="emote-menu" hidden></div>
+    <button id="emoteBtn" class="icon-btn emote-btn" type="button" aria-label="打招呼" title="打招呼">🙏</button>
+  </div>
+  <canvas id="minimap" class="minimap" width="180" height="231" hidden aria-label="小地圖：點選可前往"></canvas>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <p class="footnote">原創虛構廟宇・非任何實體宮廟官方服務</p>
+
+  <div id="introModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <div class="card intro">
+      <div class="seal big" aria-hidden="true">雲</div>
+      <h2 id="introTitle">雲端宮・線上參拜</h2>
+      <p class="lead">照著傳統動線慢慢走：龍門進、虎門出。拜墊一人一個，人多會排隊，大家不會撞在一起。</p>
+      <label class="field">
+        <span>你的暱稱（顯示給同廟埕的人）</span>
+        <input id="nameInput" maxlength="12" autocomplete="nickname" placeholder="香客">
+      </label>
+      <div class="look-row">
+        <span class="muted">造型</span>
+        <canvas id="lookPreview" width="72" height="72" aria-hidden="true"></canvas>
+        <button id="lookBtn" class="ghost" type="button">換一套</button>
+      </div>
+      <button id="enterBtn" class="primary wide" type="button">進廟參拜</button>
+      <div id="loading" class="loading" hidden><div id="loadingBar"></div></div>
+      <p class="fine">免註冊；你寫下的祈願只留在你的裝置，不會上傳。</p>
+    </div>
+  </div>
+
+  <div id="aboutModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
+    <div class="card scroll">
+      <button class="close" type="button" data-close aria-label="關閉">×</button>
+      <h2 id="aboutTitle">關於雲端宮</h2>
+      <p>雲端宮是一座<strong>原創、虛構</strong>的線上廟宇，用來體驗台灣廟宇常見的參拜流程。場景、人物、籤詩與聲音皆為本站自製。</p>
+      <h3>這版特別處理的地方</h3>
+      <ul>
+        <li><strong>動線</strong>：依多數說法「龍門（面向廟時右側）進、虎門（左側）出」單向繞行；後殿由東往西，前後不會逆流交錯。</li>
+        <li><strong>不互撞</strong>：每個人都會預判 1～2 秒內的路線並提前閃避，另有一道「身體不重疊」的保護；不會穿過神桌、香爐或牆。</li>
+        <li><strong>排隊</strong>：拜墊一人一個；滿了就在地上的金色小點排隊，前面的人離開時整排往前。</li>
+        <li><strong>人數</strong>：場景中的香客多為電腦模擬，用來呈現人流；右上角人數只計算真人連線。</li>
+      </ul>
+      <h3>操作</h3>
+      <ul>
+        <li>電腦：WASD／方向鍵移動、拖曳轉視角、滾輪縮放、N 前往下一站、V 切換俯瞰。</li>
+        <li>手機：左下搖桿移動、單指拖曳轉視角、雙指縮放。</li>
+        <li>點地面可走過去；點神桌、香爐可直接前往排隊。</li>
+      </ul>
+      <h3>設定</h3>
+      <div class="settings">
+        <label>時段
+          <select id="moodSelect">
+            <option value="auto">依你的當地時間</option>
+            <option value="day">白天</option>
+            <option value="dusk">黃昏</option>
+            <option value="night">夜晚（燈籠亮起）</option>
+          </select>
+        </label>
+        <label class="check"><input id="guideCheck" type="checkbox" checked> 完成一站後自動帶路到下一站</label>
+        <label>畫質
+          <select id="qualitySelect">
+            <option value="auto">自動</option>
+            <option value="high">高（含即時陰影）</option>
+            <option value="low">省電</option>
+          </select>
+        </label>
+      </div>
+      <h3>說明與隱私</h3>
+      <p class="fine">免註冊、不追蹤。暱稱只用來顯示在同廟埕其他人的畫面；稟告內容只存在這個分頁，不會上傳或保存。籤詩為本站原創，非任何廟宇的傳統籤詩；「常見祈求」為民間常見說法，僅供參考。實際參拜請依各廟指示。添香油錢僅為象徵，不會收取任何費用。</p>
+    </div>
+  </div>
+
+  <div id="noteModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="noteTitle" hidden>
+    <div class="card">
+      <button class="close" type="button" data-close aria-label="關閉">×</button>
+      <h2 id="noteTitle">向神明稟告</h2>
+      <p class="fine">傳統上會稟告姓名、生辰、住址與心願。以下皆可留白；內容只留在這個分頁，不會傳送或保存。</p>
+      <label class="field"><span>姓名</span><input id="noteName" maxlength="20" autocomplete="off"></label>
+      <label class="field"><span>生日</span><input id="noteBirth" maxlength="20" autocomplete="off" placeholder="例如 1990 年 5 月 1 日"></label>
+      <label class="field"><span>住址或居住地</span><input id="notePlace" maxlength="40" autocomplete="off"></label>
+      <label class="field"><span>心願</span><textarea id="noteWish" rows="3" maxlength="200"></textarea></label>
+      <button id="noteSubmit" class="primary wide" type="button">合掌稟告</button>
+    </div>
+  </div>
+
+  <div id="divModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="divTitle" hidden>
+    <div class="card div-card">
+      <button class="close" type="button" data-close aria-label="關閉">×</button>
+      <h2 id="divTitle">擲筊</h2>
+      <p id="divHint" class="fine"></p>
+      <label class="field" id="divQuestionField"><span>想問的事（只留在你的裝置）</span><input id="divQuestion" maxlength="60" autocomplete="off"></label>
+      <div class="blocks" id="blocks" aria-hidden="true">
+        <div class="block left flat"></div>
+        <div class="block right round"></div>
+      </div>
+      <div class="lot-tube" id="lotTube" hidden aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div id="divResult" class="div-result" aria-live="polite"></div>
+      <div id="fortune" class="fortune" hidden></div>
+      <div class="div-actions" id="divActions"></div>
+    </div>
+  </div>
+
+  <div id="roomModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="roomTitle" hidden>
+    <div class="card">
+      <button class="close" type="button" data-close aria-label="關閉">×</button>
+      <h2 id="roomTitle">廟埕</h2>
+      <p class="fine">同一個廟埕的人會在彼此畫面上出現。把連結傳給朋友就能一起參拜。</p>
+      <div id="roomList" class="room-list"></div>
+      <label class="field"><span>前往其他廟埕（英文字母、數字、連字號）</span><input id="roomInput" maxlength="24" placeholder="court-2" autocomplete="off"></label>
+      <div class="row">
+        <button id="roomGo" class="ghost" type="button">前往</button>
+        <button id="copyLink" class="primary" type="button">複製邀請連結</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="doneModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="doneTitle" hidden>
+    <div class="card intro">
+      <div class="seal big" aria-hidden="true">安</div>
+      <h2 id="doneTitle">參拜圓滿</h2>
+      <p id="doneText" class="lead"></p>
+      <ul id="doneList" class="done-list"></ul>
+      <div class="row">
+        <button id="againBtn" class="ghost" type="button">從入口再走一次</button>
+        <button id="stayBtn" class="primary" type="button">留在廟埕逛逛</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

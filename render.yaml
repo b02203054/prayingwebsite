@@ -1,0 +1,14 @@
+# Render Blueprint: one Node web service (static files + WebSocket rooms).
+services:
+  - type: web
+    name: cloud-temple
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NPC_TARGET
+        value: "18"

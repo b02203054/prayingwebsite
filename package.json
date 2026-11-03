@@ -1,0 +1,22 @@
+{
+  "name": "cloud-temple",
+  "version": "1.0.0",
+  "description": "雲端宮：原創 3D 線上參拜體驗，重點是順暢動線與不互撞的人流。",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "report": "node tools/sim-report.js",
+    "build:static": "node tools/build-static.js"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "three": "0.180.0",
+    "ws": "8.21.3"
+  }
+}
