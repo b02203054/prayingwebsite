@@ -56,10 +56,32 @@ export const SOLIDS = [
 // Round solids.
 export const CIRCLES = [
   disc('tiangong', 16.0, 20.4, 1.05, 1.9, 'tiangong'),
-  disc('pillarW2', 4.9, 15.0, 0.32, 6.0, 'pillar'),
-  disc('pillarW1', 10.6, 15.1, 0.32, 6.0, 'pillar', { couplet: 0 }),
-  disc('pillarE1', 21.4, 15.1, 0.32, 6.0, 'pillar', { couplet: 1 }),
-  disc('pillarE2', 27.1, 15.0, 0.32, 6.0, 'pillar'),
+  // Main hall front: lacquered outer pillars carry the couplet, the inner pair are carved dragon pillars.
+  disc('pillarW2', 4.9, 15.0, 0.32, 6.0, 'pillar', { couplet: 1 }),
+  // Collision radius covers the coiled dragon, not just the column.
+  disc('pillarW1', 10.6, 15.1, 0.42, 6.0, 'pillar', { dragon: true }),
+  disc('pillarE1', 21.4, 15.1, 0.42, 6.0, 'pillar', { dragon: true }),
+  disc('pillarE2', 27.1, 15.0, 0.32, 6.0, 'pillar', { couplet: 0 }),
+  // Front porch of the 三川殿: dragon pillars flank the closed centre door.
+  disc('porchW', 11.2, 31.05, 0.26, 4.0, 'porchPillar'),
+  disc('porchDW', 14.2, 31.05, 0.4, 4.0, 'porchPillar', { dragon: true }),
+  disc('porchDE', 17.8, 31.05, 0.4, 4.0, 'porchPillar', { dragon: true }),
+  disc('porchE', 20.8, 31.05, 0.26, 4.0, 'porchPillar'),
+  // Drum stones (抱鼓石) on both sides of each open gate.
+  disc('drumStoneTW', 6.55, 30.62, 0.22, 0.8, 'drumStone'),
+  disc('drumStoneTE', 10.05, 30.62, 0.22, 0.8, 'drumStone'),
+  disc('drumStoneDW', 21.95, 30.62, 0.22, 0.8, 'drumStone'),
+  disc('drumStoneDE', 25.45, 30.62, 0.22, 0.8, 'drumStone'),
+  // Posts of the small canopy over the service desk.
+  disc('deskPostNW', 27.35, 32.2, 0.09, 2.6, 'post'),
+  disc('deskPostNE', 29.45, 32.2, 0.09, 2.6, 'post'),
+  disc('deskPostSW', 27.35, 35.6, 0.09, 2.6, 'post'),
+  disc('deskPostSE', 29.45, 35.6, 0.09, 2.6, 'post'),
+  // Potted plants along the courtyard walls, away from the walking lines.
+  disc('potE1', 27.35, 18.2, 0.36, 1.4, 'pot'),
+  disc('potE2', 27.35, 21.0, 0.36, 1.4, 'pot'),
+  disc('potE3', 27.35, 23.8, 0.36, 1.4, 'pot'),
+  disc('potW1', 4.65, 25.6, 0.36, 1.4, 'pot'),
   disc('bell', 27.0, 13.6, 0.55, 2.3, 'bell'),
   disc('drum', 5.0, 13.6, 0.55, 1.7, 'drum'),
   disc('lionWest', 12.4, 31.8, 0.55, 1.3, 'lion'),

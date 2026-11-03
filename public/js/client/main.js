@@ -40,7 +40,17 @@ const touch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' i
 if (touch) document.body.classList.add('touch');
 const qualityPref = params.get('quality') || store.get('quality', 'auto');
 const quality = qualityPref === 'auto' ? (touch || Math.min(window.innerWidth, window.innerHeight) < 600 ? 'low' : 'high') : qualityPref;
-const forceOffline = params.get('offline') === '1' || location.protocol === 'file:';
+// A static build (e.g. a hosted demo page) can declare itself single-player.
+const staticDemo = document.querySelector('meta[name="cloud-temple-mode"]')?.content === 'offline';
+const forceOffline = staticDemo || params.get('offline') === '1' || location.protocol === 'file:';
+if (staticDemo) document.body.classList.add('static-demo');
+
+// Plaques are painted onto canvases once, so give the serif face a moment to
+// load (falls back to the system serif after 2.5 s or when offline).
+const PLAQUE_TEXT = '雲端宮龍門虎門天上聖母文昌帝君月下老人觀世音菩薩光明燈服務台求籤處金爐天公爐心誠則靈雲來去常靜步緩穩福自臨平安慈光春入出龍虎';
+try {
+  await Promise.race([document.fonts.load('700 64px "Noto Serif TC"', PLAQUE_TEXT), new Promise((r) => setTimeout(r, 2500))]);
+} catch { /* system serif */ }
 
 const canvas = $('scene');
 const scene = new TempleScene(canvas, $('overlay'), { quality });
@@ -527,6 +537,18 @@ if (params.get('debug') === '1') {
     get mode() { return session?.mode; },
     get others() { return session ? session.others().length : 0; },
     showFortune(n) { divination.showFortune(n); hud.openModal('divModal'); },
+    // Put the avatar somewhere and aim the camera (for repeatable screenshots).
+    place(x, y, heading, view = {}) {
+      if (session.mode === 'offline') session.room.teleportPlayer(session.selfId, x, y);
+      controller.stop();
+      controller.x = x;
+      controller.y = y;
+      controller.heading = heading;
+      Object.assign(scene.rig, view);
+      scene.rig.curDist = scene.rig.dist;
+      scene.rig.manualUntil = performance.now() / 1000 + 600;
+      scene.rig.snap = true;
+    },
     get timing() { return { logicMs: +timing.logic.toFixed(2), renderMs: +timing.render.toFixed(2), calls: scene.renderer.info.render.calls, tris: scene.renderer.info.render.triangles }; },
   };
 }

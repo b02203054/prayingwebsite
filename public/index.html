@@ -7,11 +7,15 @@
   <meta name="description" content="原創 3D 線上廟宇：照著龍門進、虎門出的動線慢慢走、好好拜，人多時自動排隊，不會互相碰撞。">
   <meta name="theme-color" content="#2b1a14">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&display=swap">
   <link rel="stylesheet" href="css/app.css">
   <script type="module" src="js/client/main.js"></script>
 </head>
 <body>
   <canvas id="scene" aria-label="3D 廟宇場景"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
   <div id="overlay" class="overlay" aria-hidden="true"></div>
 
   <header class="topbar">
@@ -185,8 +189,9 @@
       <button class="close" type="button" data-close aria-label="關閉">×</button>
       <h2 id="roomTitle">廟埕</h2>
       <p class="fine">同一個廟埕的人會在彼此畫面上出現。把連結傳給朋友就能一起參拜。</p>
+      <p class="fine room-note">這是單人試玩版：香客由你的瀏覽器模擬。部署到伺服器後，就能和朋友在同一個廟埕參拜。</p>
       <div id="roomList" class="room-list"></div>
-      <label class="field"><span>前往其他廟埕（英文字母、數字、連字號）</span><input id="roomInput" maxlength="24" placeholder="court-2" autocomplete="off"></label>
+      <label class="field" for="roomInput"><span>前往其他廟埕（英文字母、數字、連字號）</span><input id="roomInput" maxlength="24" placeholder="court-2" autocomplete="off"></label>
       <div class="row">
         <button id="roomGo" class="ghost" type="button">前往</button>
         <button id="copyLink" class="primary" type="button">複製邀請連結</button>

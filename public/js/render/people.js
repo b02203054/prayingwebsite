@@ -38,49 +38,66 @@ function part(geometry, color, m) {
   return paint(g, color);
 }
 
+// Darken (k < 1) or lighten (k > 1, toward white) a hex colour.
+function tint(hex, k) {
+  const c = new THREE.Color(hex);
+  if (k <= 1) c.multiplyScalar(k);
+  else c.lerp(new THREE.Color('#ffffff'), k - 1);
+  return `#${c.getHexString()}`;
+}
+
 function buildUpper(look) {
   const skin = PALETTE.skin[look.skin];
   const hair = PALETTE.hair[look.age === 2 ? 5 : look.hair];
   const top = PALETTE.top[look.top];
   const parts = [];
-  // Torso (lathe) from the hip pivot upward.
+  // Torso (lathe) from the hip pivot upward, softly rounded.
   const torso = new THREE.LatheGeometry([
-    new THREE.Vector2(0.0, -0.02), new THREE.Vector2(0.13, 0.0), new THREE.Vector2(0.17, 0.08), new THREE.Vector2(0.172, 0.24),
-    new THREE.Vector2(0.15, 0.36), new THREE.Vector2(0.09, 0.44), new THREE.Vector2(0.0, 0.455),
-  ], 16);
+    new THREE.Vector2(0.0, -0.02), new THREE.Vector2(0.13, 0.0), new THREE.Vector2(0.168, 0.07), new THREE.Vector2(0.175, 0.2),
+    new THREE.Vector2(0.162, 0.32), new THREE.Vector2(0.125, 0.41), new THREE.Vector2(0.07, 0.45), new THREE.Vector2(0.0, 0.46),
+  ], 22);
   parts.push(part(torso, top));
+  parts.push(part(new THREE.TorusGeometry(0.088, 0.022, 8, 20), tint(top, 0.72), matrixAt(0, 0.435, 0, Math.PI / 2, 0, 0)));
   if (look.bottom === 5) {
-    // Long robe: a skirt that covers most of the legs.
-    parts.push(part(new THREE.CylinderGeometry(0.16, 0.22, 0.3, 16, 1, true), top, matrixAt(0, -0.12, 0)));
+    // Long robe with a sash.
+    parts.push(part(new THREE.CylinderGeometry(0.165, 0.225, 0.3, 22, 1, true), top, matrixAt(0, -0.12, 0)));
+    parts.push(part(new THREE.TorusGeometry(0.168, 0.02, 6, 24), '#c9a227', matrixAt(0, 0.07, 0, Math.PI / 2, 0, 0)));
+  } else if (look.top % 3 === 0) {
+    for (const y of [0.32, 0.2]) parts.push(part(new THREE.SphereGeometry(0.013, 8, 6), tint(top, 1.55), matrixAt(0, y, 0.171)));
   }
-  parts.push(part(new THREE.SphereGeometry(0.2, 20, 16), skin, matrixAt(0, 0.62, 0)));
-  // Hair.
+  parts.push(part(new THREE.SphereGeometry(0.2, 28, 20), skin, matrixAt(0, 0.62, 0)));
+  // Hair: crown, back, style pieces, and a fringe over the forehead.
   const style = look.age === 2 ? (look.style % 2 === 0 ? 0 : 3) : look.style;
-  parts.push(part(new THREE.SphereGeometry(0.214, 20, 10, 0, Math.PI * 2, 0, 1.25), hair, matrixAt(0, 0.635, -0.01)));
+  parts.push(part(new THREE.SphereGeometry(0.214, 26, 12, 0, Math.PI * 2, 0, 1.25), hair, matrixAt(0, 0.635, -0.01)));
   const backLen = style === 1 ? 2.35 : style === 2 ? 2.2 : 1.95;
-  parts.push(part(new THREE.SphereGeometry(0.212, 18, 10, Math.PI, Math.PI, 0, backLen), hair, matrixAt(0, 0.63, -0.005)));
-  if (style === 2) parts.push(part(new THREE.BoxGeometry(0.3, 0.34, 0.07), hair, matrixAt(0, 0.38, -0.17)));
-  if (style === 3) parts.push(part(new THREE.SphereGeometry(0.095, 12, 10), hair, matrixAt(0, 0.86, -0.08)));
-  if (style === 4) parts.push(part(new THREE.CapsuleGeometry(0.05, 0.18, 4, 8), hair, matrixAt(0, 0.56, -0.24, 0.5, 0, 0)));
-  if (style === 5) parts.push(part(new THREE.SphereGeometry(0.16, 14, 8, 0, Math.PI * 2, 0, 0.9), hair, matrixAt(0.03, 0.73, 0.07, 0.5, 0, -0.2)));
-  // Face: eyes and cheeks on the front (+z).
+  parts.push(part(new THREE.SphereGeometry(0.212, 22, 12, Math.PI, Math.PI, 0, backLen), hair, matrixAt(0, 0.63, -0.005)));
+  if (style === 2) parts.push(part(new THREE.CapsuleGeometry(0.11, 0.18, 4, 12), hair, matrixAt(0, 0.4, -0.15, 0, 0, 0, 1.35, 1, 0.55)));
+  if (style === 3) parts.push(part(new THREE.SphereGeometry(0.095, 16, 12), hair, matrixAt(0, 0.86, -0.08)));
+  if (style === 4) parts.push(part(new THREE.CapsuleGeometry(0.05, 0.18, 4, 10), hair, matrixAt(0, 0.56, -0.24, 0.5, 0, 0)));
+  if (style === 5) parts.push(part(new THREE.SphereGeometry(0.16, 16, 8, 0, Math.PI * 2, 0, 0.9), hair, matrixAt(0.03, 0.73, 0.07, 0.5, 0, -0.2)));
+  else parts.push(part(new THREE.SphereGeometry(0.17, 20, 8, 0, Math.PI * 2, 0, 0.85), hair, matrixAt(0, 0.7, 0.06, 0.62, 0, 0, 1.05, 0.7, 1)));
+  if (style !== 1 && style !== 2) for (const sx of [-1, 1]) parts.push(part(new THREE.SphereGeometry(0.042, 10, 8), skin, matrixAt(sx * 0.196, 0.6, 0.0, 0, 0, 0, 0.6, 1, 0.9)));
+  // Face: eyes with a highlight, brows, cheeks and a small smile.
   for (const sx of [-1, 1]) {
-    parts.push(part(new THREE.SphereGeometry(0.026, 8, 6), '#241a15', matrixAt(sx * 0.072, 0.61, 0.182, 0, 0, 0, 1, 1.25, 0.6)));
-    parts.push(part(new THREE.CircleGeometry(0.03, 10), '#f19c94', matrixAt(sx * 0.115, 0.56, 0.163, 0, sx * 0.55, 0)));
+    parts.push(part(new THREE.SphereGeometry(0.027, 12, 10), '#241a15', matrixAt(sx * 0.072, 0.61, 0.182, 0, 0, 0, 1, 1.3, 0.6)));
+    parts.push(part(new THREE.SphereGeometry(0.0085, 8, 6), '#ffffff', matrixAt(sx * 0.072 + 0.01, 0.624, 0.197)));
+    parts.push(part(new THREE.BoxGeometry(0.048, 0.011, 0.01), tint(hair, 0.8), matrixAt(sx * 0.074, 0.664, 0.186, 0, 0, sx * -0.18)));
+    parts.push(part(new THREE.CircleGeometry(0.03, 14), '#f0a196', matrixAt(sx * 0.115, 0.56, 0.163, 0, sx * 0.55, 0)));
   }
-  parts.push(part(new THREE.BoxGeometry(0.04, 0.012, 0.01), '#8a3b30', matrixAt(0, 0.535, 0.196)));
+  parts.push(part(new THREE.TorusGeometry(0.02, 0.0055, 4, 12, Math.PI), '#8a3b30', matrixAt(0, 0.548, 0.193, 0, 0, Math.PI)));
   // Accessories.
   if (look.acc === 1) {
-    parts.push(part(new THREE.CylinderGeometry(0.3, 0.3, 0.02, 20), '#e8d9b5', matrixAt(0, 0.79, 0)));
-    parts.push(part(new THREE.CylinderGeometry(0.17, 0.19, 0.12, 16), '#e8d9b5', matrixAt(0, 0.86, 0)));
-    parts.push(part(new THREE.CylinderGeometry(0.193, 0.193, 0.03, 16), '#c8553d', matrixAt(0, 0.81, 0)));
+    parts.push(part(new THREE.CylinderGeometry(0.3, 0.3, 0.02, 24), '#e8d9b5', matrixAt(0, 0.79, 0)));
+    parts.push(part(new THREE.CylinderGeometry(0.17, 0.19, 0.12, 20), '#e8d9b5', matrixAt(0, 0.86, 0)));
+    parts.push(part(new THREE.CylinderGeometry(0.193, 0.193, 0.03, 20), '#c8553d', matrixAt(0, 0.81, 0)));
   } else if (look.acc === 2) {
-    for (const sx of [-1, 1]) parts.push(part(new THREE.BoxGeometry(0.075, 0.05, 0.012), '#2b2b2b', matrixAt(sx * 0.072, 0.615, 0.19)));
-    parts.push(part(new THREE.BoxGeometry(0.06, 0.01, 0.01), '#2b2b2b', matrixAt(0, 0.62, 0.195)));
+    for (const sx of [-1, 1]) parts.push(part(new THREE.TorusGeometry(0.03, 0.006, 6, 16), '#2b2b2b', matrixAt(sx * 0.072, 0.612, 0.192)));
+    parts.push(part(new THREE.BoxGeometry(0.05, 0.008, 0.008), '#2b2b2b', matrixAt(0, 0.618, 0.197)));
   } else if (look.acc === 3) {
-    parts.push(part(new THREE.BoxGeometry(0.24, 0.26, 0.12), '#5c6b73', matrixAt(0, 0.24, -0.19)));
+    parts.push(part(new THREE.CapsuleGeometry(0.1, 0.08, 4, 10), '#5c6b73', matrixAt(0, 0.25, -0.19, 0, 0, 0, 1.15, 1, 0.65)));
+    for (const sx of [-1, 1]) parts.push(part(new THREE.TorusGeometry(0.14, 0.012, 4, 16, Math.PI), '#4a565c', matrixAt(sx * 0.08, 0.3, -0.02, 0, Math.PI / 2, Math.PI / 2)));
   } else if (look.acc === 4) {
-    parts.push(part(new THREE.TorusGeometry(0.13, 0.04, 8, 18), '#d1495b', matrixAt(0, 0.43, 0, Math.PI / 2, 0, 0)));
+    parts.push(part(new THREE.TorusGeometry(0.12, 0.042, 10, 22), '#d1495b', matrixAt(0, 0.43, 0, Math.PI / 2, 0, 0)));
   }
   return mergeList(parts);
 }
@@ -89,16 +106,17 @@ function buildArm(look) {
   const top = PALETTE.top[look.top];
   const skin = PALETTE.skin[look.skin];
   return mergeList([
-    part(new THREE.CapsuleGeometry(0.048, 0.17, 4, 8), top, matrixAt(0, -0.12, 0)),
-    part(new THREE.SphereGeometry(0.052, 10, 8), skin, matrixAt(0, -0.255, 0)),
+    part(new THREE.CapsuleGeometry(0.048, 0.17, 4, 10), top, matrixAt(0, -0.12, 0)),
+    part(new THREE.TorusGeometry(0.047, 0.012, 6, 14), tint(top, 0.72), matrixAt(0, -0.215, 0, Math.PI / 2, 0, 0)),
+    part(new THREE.SphereGeometry(0.052, 12, 10), skin, matrixAt(0, -0.255, 0)),
   ]);
 }
 
 function buildLeg(look) {
   const bottom = PALETTE.bottom[look.bottom === 5 ? 1 : look.bottom];
   return mergeList([
-    part(new THREE.CapsuleGeometry(0.058, 0.2, 4, 8), bottom, matrixAt(0, -0.16, 0)),
-    part(new THREE.BoxGeometry(0.1, 0.06, 0.16), '#3a2a22', matrixAt(0, -0.31, 0.03)),
+    part(new THREE.CapsuleGeometry(0.058, 0.2, 4, 10), bottom, matrixAt(0, -0.16, 0)),
+    part(new THREE.SphereGeometry(0.066, 14, 10), '#2e231d', matrixAt(0, -0.302, 0.035, 0, 0, 0, 1, 0.62, 1.45)),
   ]);
 }
 

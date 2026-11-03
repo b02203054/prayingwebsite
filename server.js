@@ -11,10 +11,12 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Room, DT } from './public/js/sim/room.js';
 import { sanitizeLook } from './public/js/sim/ritual.js';
+import { ADDON_FILES, rewriteAddon } from './lib/vendor.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(ROOT, 'public');
 const THREE_BUILD = join(ROOT, 'node_modules', 'three', 'build');
+const THREE_ADDONS = join(ROOT, 'node_modules', 'three', 'examples', 'jsm');
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_ROOMS = 30;
 const MAX_CLIENTS_PER_ROOM = 30;
@@ -38,10 +40,10 @@ const SECURITY_HEADERS = {
   'Content-Security-Policy': [
     "default-src 'self'",
     "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob:",
     "connect-src 'self' ws: wss:",
-    "font-src 'self'",
+    "font-src 'self' https://fonts.gstatic.com",
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
@@ -69,12 +71,13 @@ export function sanitizeName(raw) {
 
 const fileCache = new Map();
 
-async function loadFile(path) {
+async function loadFile(path, transform = null) {
   const info = await stat(path);
   if (!info.isFile()) return null;
   const cached = fileCache.get(path);
   if (cached && cached.mtime === info.mtimeMs) return cached;
-  const body = await readFile(path);
+  let body = await readFile(path);
+  if (transform) body = Buffer.from(transform(body.toString('utf8')), 'utf8');
   const type = MIME[extname(path)] || 'application/octet-stream';
   const compressible = /^(text|application\/(json|manifest)|image\/svg)/.test(type);
   const entry = {
@@ -100,6 +103,11 @@ function resolveStatic(urlPath) {
     const file = normalize(join(THREE_BUILD, p.slice('/vendor/three/build/'.length)));
     return file.startsWith(THREE_BUILD + sep) ? { file, vendor: true } : null;
   }
+  if (p.startsWith('/vendor/three/addons/')) {
+    const rel = p.slice('/vendor/three/addons/'.length);
+    if (!ADDON_FILES.includes(rel)) return null;
+    return { file: join(THREE_ADDONS, rel), vendor: true, transform: rewriteAddon };
+  }
   if (p.endsWith('/')) p += 'index.html';
   const file = normalize(join(PUBLIC, p));
   return file.startsWith(PUBLIC + sep) ? { file, vendor: false } : null;
@@ -110,7 +118,7 @@ async function serveStatic(req, res, url) {
   if (!target) return send(res, 400, 'Bad request');
   let entry;
   try {
-    entry = await loadFile(target.file);
+    entry = await loadFile(target.file, target.transform);
   } catch {
     entry = null;
   }

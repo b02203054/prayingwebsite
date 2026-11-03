@@ -4,7 +4,9 @@
 import * as THREE from '../../vendor/three/build/three.module.min.js';
 import { SOLIDS, CIRCLES, AREAS, pointInRect } from '../sim/world.js';
 
-const BLOCKERS = [...SOLIDS.filter((s) => s.h > 1.6), ...CIRCLES.filter((c) => c.h > 2.5)];
+// Walls and big furniture stop the camera; thin pillars and posts may pass
+// in front of it briefly (snapping the camera in for each would feel jumpy).
+const BLOCKERS = [...SOLIDS.filter((s) => s.h > 1.6), ...CIRCLES.filter((c) => c.h > 2.5 && c.r > 0.5)];
 
 function blockedAt(x, z, h) {
   for (const o of BLOCKERS) {
