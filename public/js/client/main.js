@@ -3,6 +3,7 @@ import { TempleScene } from '../render/scene.js';
 import { PALETTE } from '../render/people.js';
 import { Hud, STEPS } from '../ui/hud.js';
 import { Divination } from '../ui/divination.js';
+import { LotsBook } from '../ui/lots-book.js';
 import { JIAO_TEXT } from '../ui/fortunes.js';
 import { Sound } from '../ui/sound.js';
 import { Input } from './input.js';
@@ -310,6 +311,7 @@ async function enter() {
   }
   controller = new AvatarController({ nav: sharedNav(), session, look, onChange });
   divination = new Divination({ controller, sound, hud });
+  divination.onBrowse = openLots;
   scene.setSelfLook(look);
   scene.rig.setMode('follow');
   scene.rig.yaw = 0;
@@ -347,6 +349,7 @@ const input = new Input({
     if (k === 'n') $('goBtn').click();
     else if (k === 'v') $('viewBtn').click();
     else if (k === 'm') $('mapBtn').click();
+    else if (k === 'l') openLots();
     else if (k === 'enter' || k === ' ') {
       const b = [...document.querySelectorAll('#actionButtons .act:not(:disabled):not(.done)')][0];
       if (b) b.click();
@@ -374,6 +377,12 @@ $('soundBtn').addEventListener('click', () => {
   hud.setToggle('soundBtn', on);
 });
 $('aboutBtn').addEventListener('click', () => hud.openModal('aboutModal'));
+const lotsBook = new LotsBook({ root: $('lotsModal'), getDrawn: () => divination?.lastFortune?.n || 0 });
+function openLots() {
+  lotsBook.open();
+  hud.openModal('lotsModal');
+}
+$('lotsBtn').addEventListener('click', openLots);
 $('roomBtn').addEventListener('click', openRooms);
 
 const moodSelect = $('moodSelect');
@@ -536,7 +545,7 @@ if (params.get('debug') === '1') {
     get avatar() { return controller ? { x: controller.x, y: controller.y, mode: controller.mode, plan: controller.plan && { station: controller.plan.station, phase: controller.plan.phase }, done: [...controller.done] } : null; },
     get mode() { return session?.mode; },
     get others() { return session ? session.others().length : 0; },
-    showFortune(n) { divination.showFortune(n); hud.openModal('divModal'); },
+    showFortune(n) { divination.open('lots'); divination.receive(n); hud.openModal('divModal'); },
     // Put the avatar somewhere and aim the camera (for repeatable screenshots).
     place(x, y, heading, view = {}) {
       if (session.mode === 'offline') session.room.teleportPlayer(session.selfId, x, y);

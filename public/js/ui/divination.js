@@ -2,6 +2,7 @@
 // the avatar plays the matching animation for everyone to see.
 //   求籤: ask with moon blocks first → draw a stick → confirm the stick with 聖筊.
 import { FORTUNES, JIAO_TEXT } from './fortunes.js';
+import { renderFortune } from './lots-book.js';
 
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -152,35 +153,23 @@ export class Divination {
     this.blocks.hidden = false;
     const r = await this.throwOnce();
     if (r === 0) {
-      this.showFortune(this.lot);
-      this.buttons([['收下籤詩', () => this.close()]]);
+      this.receive(this.lot);
     } else {
       this.hint.textContent = '不是這一支，請重新抽籤。';
       this.buttons([['重新抽籤', () => this.draw()]]);
     }
   }
 
+  // The stick is confirmed: show its poem with the closing buttons.
+  receive(n) {
+    this.showFortune(n);
+    this.buttons([['看全部籤詩', () => { this.close(); this.onBrowse?.(); }, true], ['收下籤詩', () => this.close()]]);
+  }
+
   showFortune(n) {
-    const f = FORTUNES[(n - 1) % FORTUNES.length];
     this.qField.hidden = true;
     this.fortune.hidden = false;
-    this.fortune.innerHTML = '<div class="head"></div><div class="poem"></div><div class="meaning"></div><p class="fine">本站原創籤詩，僅供參考與娛樂；重要的決定，請多方考量、與信任的人商量。</p>';
-    this.fortune.querySelector('.head').textContent = `第 ${n} 籤・${f.level}・${f.title}`;
-    // Traditional layout: one column per line, read right to left. Built from
-    // single characters so it renders the same with every font.
-    const poem = this.fortune.querySelector('.poem');
-    for (const line of f.lines) {
-      const col = document.createElement('div');
-      col.className = 'col';
-      for (const ch of line) {
-        const span = document.createElement('span');
-        span.textContent = ch;
-        col.appendChild(span);
-      }
-      poem.appendChild(col);
-    }
-    poem.setAttribute('aria-label', f.lines.join('，'));
-    this.fortune.querySelector('.meaning').textContent = `解曰：${f.meaning}`;
+    const f = renderFortune(this.fortune, n);
     this.hint.textContent = '';
     this.result.innerHTML = '';
     this.lastFortune = { n, ...f };
